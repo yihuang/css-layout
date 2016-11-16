@@ -16,6 +16,7 @@
 
 @implementation CSSLayoutTests
 
+#ifndef TRAVIS_CI
 - (void)testNodesAreDeallocedWithSingleView
 {
   XCTAssertEqual(0, CSSNodeGetInstanceCount());
@@ -45,6 +46,7 @@
 
   XCTAssertEqual(instanceCount, CSSNodeGetInstanceCount());
 }
+#endif
 
 - (void)testUsesFlexbox
 {
