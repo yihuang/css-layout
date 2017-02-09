@@ -89,6 +89,7 @@ typedef struct YGStyle {
   YGValue dimensions[2];
   YGValue minDimensions[2];
   YGValue maxDimensions[2];
+  float centerOffset[2];
 
   // Yoga specific properties, not compatible with flexbox specification
   float aspectRatio;
@@ -179,6 +180,7 @@ static YGNode gYGNodeDefaults = {
             .dimensions = YG_DEFAULT_DIMENSION_VALUES_AUTO_UNIT,
             .minDimensions = YG_DEFAULT_DIMENSION_VALUES_UNIT,
             .maxDimensions = YG_DEFAULT_DIMENSION_VALUES_UNIT,
+            .centerOffset = YG_DEFAULT_DIMENSION_VALUES,
             .position = YG_DEFAULT_EDGE_VALUES_UNIT,
             .margin = YG_DEFAULT_EDGE_VALUES_UNIT,
             .padding = YG_DEFAULT_EDGE_VALUES_UNIT,
@@ -763,6 +765,8 @@ YG_NODE_STYLE_PROPERTY_UNIT_IMPL(YGValue, MinWidth, minWidth, minDimensions[YGDi
 YG_NODE_STYLE_PROPERTY_UNIT_IMPL(YGValue, MinHeight, minHeight, minDimensions[YGDimensionHeight]);
 YG_NODE_STYLE_PROPERTY_UNIT_IMPL(YGValue, MaxWidth, maxWidth, maxDimensions[YGDimensionWidth]);
 YG_NODE_STYLE_PROPERTY_UNIT_IMPL(YGValue, MaxHeight, maxHeight, maxDimensions[YGDimensionHeight]);
+YG_NODE_STYLE_PROPERTY_IMPL(float, CenterLeft, centerLeft, centerOffset[YGDimensionWidth]);
+YG_NODE_STYLE_PROPERTY_IMPL(float, CenterTop, centerTop, centerOffset[YGDimensionHeight]);
 
 // Yoga specific properties, not compatible with flexbox specification
 YG_NODE_STYLE_PROPERTY_IMPL(float, AspectRatio, aspectRatio, aspectRatio);
@@ -1675,40 +1679,47 @@ static void YGNodeAbsoluteLayoutChild(const YGNodeRef node,
                        "abs-layout",
                        config);
 
-  if (YGNodeIsTrailingPosDefined(child, mainAxis) && !YGNodeIsLeadingPosDefined(child, mainAxis)) {
-    child->layout.position[leading[mainAxis]] = node->layout.measuredDimensions[dim[mainAxis]] -
-                                                child->layout.measuredDimensions[dim[mainAxis]] -
-                                                YGNodeTrailingBorder(node, mainAxis) -
-                                                YGNodeTrailingMargin(child, mainAxis, width) -
-                                                YGNodeTrailingPosition(child, mainAxis, isMainAxisRow ? width : height);
-  } else if (!YGNodeIsLeadingPosDefined(child, mainAxis) &&
-             node->style.justifyContent == YGJustifyCenter) {
-    child->layout.position[leading[mainAxis]] = (node->layout.measuredDimensions[dim[mainAxis]] -
-                                                 child->layout.measuredDimensions[dim[mainAxis]]) /
-                                                2.0f;
-  } else if (!YGNodeIsLeadingPosDefined(child, mainAxis) &&
-             node->style.justifyContent == YGJustifyFlexEnd) {
-    child->layout.position[leading[mainAxis]] = (node->layout.measuredDimensions[dim[mainAxis]] -
-                                                 child->layout.measuredDimensions[dim[mainAxis]]);
+  if (!YGNodeIsLeadingPosDefined(child, mainAxis)) {
+    if (YGNodeIsTrailingPosDefined(child, mainAxis)) {
+      child->layout.position[leading[mainAxis]] = node->layout.measuredDimensions[dim[mainAxis]] -
+                                                  child->layout.measuredDimensions[dim[mainAxis]] -
+                                                  YGNodeTrailingBorder(node, mainAxis) -
+                                                  YGNodeTrailingMargin(child, mainAxis, width) -
+                                                  YGNodeTrailingPosition(child, mainAxis, isMainAxisRow ? width : height);
+    } else if (!YGFloatIsUndefined(child->style.centerOffset[dim[mainAxis]])) {
+      child->layout.position[leading[mainAxis]] = (node->layout.measuredDimensions[dim[mainAxis]] -
+                                                   child->layout.measuredDimensions[dim[mainAxis]]) /
+                                                  2.0f + child->style.centerOffset[dim[mainAxis]];
+    } else if (node->style.justifyContent == YGJustifyCenter) {
+      child->layout.position[leading[mainAxis]] = (node->layout.measuredDimensions[dim[mainAxis]] -
+                                                   child->layout.measuredDimensions[dim[mainAxis]]) /
+                                                  2.0f;
+    } else if (node->style.justifyContent == YGJustifyFlexEnd) {
+      child->layout.position[leading[mainAxis]] = (node->layout.measuredDimensions[dim[mainAxis]] -
+                                                   child->layout.measuredDimensions[dim[mainAxis]]);
+    }
   }
 
-  if (YGNodeIsTrailingPosDefined(child, crossAxis) &&
-      !YGNodeIsLeadingPosDefined(child, crossAxis)) {
-    child->layout.position[leading[crossAxis]] = node->layout.measuredDimensions[dim[crossAxis]] -
-                                                 child->layout.measuredDimensions[dim[crossAxis]] -
-                                                 YGNodeTrailingBorder(node, crossAxis) -
-                                                 YGNodeTrailingMargin(child, crossAxis, width) -
-                                                 YGNodeTrailingPosition(child, crossAxis, isMainAxisRow ? height : width);
-  } else if (!YGNodeIsLeadingPosDefined(child, crossAxis) &&
-             YGNodeAlignItem(node, child) == YGAlignCenter) {
-    child->layout.position[leading[crossAxis]] =
-        (node->layout.measuredDimensions[dim[crossAxis]] -
-         child->layout.measuredDimensions[dim[crossAxis]]) /
-        2.0f;
-  } else if (!YGNodeIsLeadingPosDefined(child, crossAxis) &&
-             YGNodeAlignItem(node, child) == YGAlignFlexEnd) {
-    child->layout.position[leading[crossAxis]] = (node->layout.measuredDimensions[dim[crossAxis]] -
-                                                  child->layout.measuredDimensions[dim[crossAxis]]);
+  if (!YGNodeIsLeadingPosDefined(child, crossAxis)) {
+    if (YGNodeIsTrailingPosDefined(child, crossAxis)) {
+      child->layout.position[leading[crossAxis]] = node->layout.measuredDimensions[dim[crossAxis]] -
+                                                   child->layout.measuredDimensions[dim[crossAxis]] -
+                                                   YGNodeTrailingBorder(node, crossAxis) -
+                                                   YGNodeTrailingMargin(child, crossAxis, width) -
+                                                   YGNodeTrailingPosition(child, crossAxis, isMainAxisRow ? height : width);
+    } else if (!YGFloatIsUndefined(child->style.centerOffset[dim[crossAxis]])) {
+      child->layout.position[leading[crossAxis]] = (node->layout.measuredDimensions[dim[crossAxis]] -
+                                                   child->layout.measuredDimensions[dim[crossAxis]]) /
+                                                  2.0f + child->style.centerOffset[dim[crossAxis]];
+    } else if (YGNodeAlignItem(node, child) == YGAlignCenter) {
+      child->layout.position[leading[crossAxis]] =
+          (node->layout.measuredDimensions[dim[crossAxis]] -
+           child->layout.measuredDimensions[dim[crossAxis]]) /
+          2.0f;
+    } else if (YGNodeAlignItem(node, child) == YGAlignFlexEnd) {
+      child->layout.position[leading[crossAxis]] = (node->layout.measuredDimensions[dim[crossAxis]] -
+                                                    child->layout.measuredDimensions[dim[crossAxis]]);
+    }
   }
 }
 

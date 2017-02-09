@@ -191,6 +191,8 @@ YG_NODE_STYLE_PROPERTY_UNIT(YGValue, MinWidth, minWidth);
 YG_NODE_STYLE_PROPERTY_UNIT(YGValue, MinHeight, minHeight);
 YG_NODE_STYLE_PROPERTY_UNIT(YGValue, MaxWidth, maxWidth);
 YG_NODE_STYLE_PROPERTY_UNIT(YGValue, MaxHeight, maxHeight);
+YG_NODE_STYLE_PROPERTY(float, CenterLeft, centerLeft);
+YG_NODE_STYLE_PROPERTY(float, CenterTop, centerTop);
 
 // Yoga specific properties, not compatible with flexbox specification
 // Aspect ratio control the size of the undefined dimension of a node.
